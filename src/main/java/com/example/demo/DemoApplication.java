@@ -15,6 +15,6 @@ public class DemoApplication {
 
     @GetMapping("/")
     public String hello() {
-        return "Hello from DevOps Pipeline - Version 4! 🚀";
+        return "Hello from DevOps Pipeline - Version 5! 🚀";
     }
 }
