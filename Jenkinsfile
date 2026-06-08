@@ -1,14 +1,12 @@
 pipeline {
     agent any
 
-    stages {
-        stage('Clone Code') {
-            steps {
-                git branch: 'main', url: 'https://github.com/Mani3126/devops-demo.git'
-            }
-        }
+    environment {
+        APP_SERVER = "3.109.55.217"
+    }
 
-        stage('Build with Maven') {
+    stages {
+        stage('Build') {
             steps {
                 sh 'mvn clean package -DskipTests'
             }
@@ -16,21 +14,24 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker build -t devops-demo-app .'
+                sh 'docker build -t devops-demo .'
             }
         }
 
-        stage('Deploy Container') {
+        stage('Deploy') {
             steps {
-                sh 'docker stop devops-app || true'
-                sh 'docker rm devops-app || true'
-                sh 'docker run -d --name devops-app -p 8080:8080 devops-demo-app'
+                sh '''
+                docker save devops-demo > app.tar
+                scp -o StrictHostKeyChecking=no app.tar ubuntu@${APP_SERVER}:~
+                ssh -o StrictHostKeyChecking=no ubuntu@${APP_SERVER} "
+                    docker stop devops-demo || true &&
+                    docker rm devops-demo || true &&
+                    docker rmi devops-demo || true &&
+                    docker load < app.tar &&
+                    docker run -d -p 8080:8080 --name devops-demo devops-demo
+                "
+                '''
             }
         }
-    }
-
-    post {
-        success { echo '✅ Deployment Successful!' }
-        failure { echo '❌ Build Failed. Check logs.' }
     }
 }
